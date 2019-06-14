@@ -22,40 +22,35 @@ class ConvNet(nn.Module):
         prob = F.softmax(score, dim=1)
         return prob
 
-if __name__ == '__main__':
+num_epochs, num_classes, batch_size, learning_rate = 10, 10, 100, 0.1
 
-    num_epochs, num_classes, batch_size, learning_rate = 10, 10, 100, 0.1
+train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transforms.ToTensor(), download=True)
+test_dataset = torchvision.datasets.MNIST(root='./data', train=False, transform=transforms.ToTensor())
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
 
-    train_dataset = torchvision.datasets.MNIST(root='./data', train=True, transform=transforms.ToTensor(), download=True)
-    test_dataset = torchvision.datasets.MNIST(root='./data', train=False, transform=transforms.ToTensor())
+model = ConvNet()
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
-
-    model = ConvNet()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-
-    total_step = len(train_loader)
-    for epoch in range(num_epochs):
-        for i, (images, labels) in enumerate(train_loader):
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            _, predicted = torch.max(outputs.data, 1)
-            correct = (predicted == labels).sum().item()
-            if (i + 1) % 100 == 0:
-                print('Epoch: {}/{}, Batch Step: {}/{}, Loss: {:.4f}, Training Accuracy of the Current Batch: {}%'.
-                      format(epoch + 1, num_epochs, i + 1, total_step, loss.item(), 100 * correct / batch_size))
-    model.eval()
-    with torch.no_grad():
-        total, correct  = 0, 0
-        for images, labels in test_loader:
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-        print('Test Accuracy of the 10,000 Test Images: {}%'.format(100 * correct / total))
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        _, predicted = torch.max(outputs.data, 1)
+        correct = (predicted == labels).sum().item()
+        if (i + 1) % 100 == 0:
+            print('Epoch: {}/{}, Batch Step: {}/{}, Loss: {:.4f}, Training Accuracy of the Current Batch: {}%'.
+                  format(epoch + 1, num_epochs, i + 1, train_loader.__len__(), loss.item(), 100 * correct / batch_size))
+model.eval()
+with torch.no_grad():
+    total, correct  = 0, 0
+    for images, labels in test_loader:
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+    print('Test Accuracy of the 10,000 Test Images: {}%'.format(100 * correct / total))
